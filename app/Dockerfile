@@ -1,7 +1,10 @@
 # Stage 1: Build the Go app with compatible libraries
-FROM golang:1.21-bullseye AS builder
+FROM golang:1.22-bullseye AS builder
 
 WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
 COPY . .
 
 # Build the Go app
@@ -19,4 +22,3 @@ COPY templates ./templates
 EXPOSE 8080
 
 CMD ["./vote-app"]
-
