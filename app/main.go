@@ -10,11 +10,11 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
-	tracesdk "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
 var (
@@ -28,27 +28,27 @@ var (
 	mu sync.Mutex
 )
 
-func initTracer() (*tracesdk.TracerProvider, error) {
-	jaegerEndpoint := os.Getenv("JAEGER_ENDPOINT")
-	if jaegerEndpoint == "" {
-		jaegerEndpoint = "http://localhost:14268/api/traces"
+func initTracer() (*sdktrace.TracerProvider, error) {
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if endpoint == "" {
+		endpoint = "http://otel-collector.otel:4318"
 	}
 
-	exp, err := jaeger.New(
-		jaeger.WithCollectorEndpoint(
-			jaeger.WithEndpoint(jaegerEndpoint),
-		),
+	ctx := context.Background()
+	exp, err := otlptracehttp.New(ctx,
+		otlptracehttp.WithEndpoint(endpoint),
+		otlptracehttp.WithInsecure(), // Disable TLS for local/cluster use
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	tp := tracesdk.NewTracerProvider(
-		tracesdk.WithBatcher(exp),
-		tracesdk.WithResource(resource.NewWithAttributes(
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exp),
+		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String("vote-app"),
-			semconv.DeploymentEnvironmentKey.String("production"),
+			semconv.ServiceName("vote-app"),
+			semconv.DeploymentEnvironment("production"),
 		)),
 	)
 	otel.SetTracerProvider(tp)
@@ -74,16 +74,14 @@ func main() {
 
 	templates = template.Must(template.ParseGlob("templates/*.html"))
 
-	// Home page
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := tracer.Start(r.Context(), "show-vote-page")
 		defer span.End()
 		renderTemplate(ctx, w, "index.html", nil)
 	})
 
-	// Vote endpoint
 	http.HandleFunc("/vote", func(w http.ResponseWriter, r *http.Request) {
-		_, span := tracer.Start(r.Context(), "process-vote") // ctx not used
+		_, span := tracer.Start(r.Context(), "process-vote")
 		defer span.End()
 
 		cloud := r.FormValue("cloud")
@@ -96,7 +94,6 @@ func main() {
 		http.Redirect(w, r, "/results", http.StatusSeeOther)
 	})
 
-	// Results page
 	http.HandleFunc("/results", func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := tracer.Start(r.Context(), "show-results")
 		defer span.End()
