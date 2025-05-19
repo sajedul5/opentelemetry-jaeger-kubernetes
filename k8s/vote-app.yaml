@@ -29,5 +29,5 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: JAEGER_ENDPOINT
-              value: "http://otel-collector:14268/api/traces"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "otel-collector.otel:4318"

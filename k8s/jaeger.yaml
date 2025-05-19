@@ -33,4 +33,4 @@ spec:
     - name: collector-grpc
       port: 14250
       targetPort: 14250
-  type: NodePort  # or LoadBalancer for cloud
+  type: ClusterIP  # or LoadBalancer for cloud
