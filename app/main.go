@@ -37,7 +37,7 @@ func initTracer() (*sdktrace.TracerProvider, error) {
 	ctx := context.Background()
 	exp, err := otlptracehttp.New(ctx,
 		otlptracehttp.WithEndpoint(endpoint),
-		otlptracehttp.WithInsecure(), // Disable TLS for local/cluster use
+		otlptracehttp.WithInsecure(), 
 	)
 	if err != nil {
 		return nil, err
