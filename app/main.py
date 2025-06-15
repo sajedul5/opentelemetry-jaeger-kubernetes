@@ -31,6 +31,8 @@ if not os.path.exists(DB_PATH):
 def read_db(): return json.load(open(DB_PATH))
 def write_db(data): json.dump(data, open(DB_PATH, "w"), indent=2)
 
+#app
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     todos = read_db()
