@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Todo App</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: auto; }
+        h1 { text-align: center; }
+        form { margin: 10px 0; }
+        .completed { text-decoration: line-through; color: gray; }
+        button { margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <h1>📝 Todo App</h1>
+    <form method="post" action="/add">
+        <input name="title" placeholder="Add new todo" required />
+        <button type="submit">Add</button>
+    </form>
+    <ul>
+        {% for todo in todos %}
+        <li>
+            <form method="post" action="/toggle" style="display:inline;">
+                <input type="hidden" name="todo_id" value="{{ todo.id }}" />
+                <button type="submit">{{ "✅" if todo.completed else "☐" }}</button>
+            </form>
+            <span class="{{ 'completed' if todo.completed }}">{{ todo.title }}</span>
+            <form method="post" action="/delete" style="display:inline;">
+                <input type="hidden" name="todo_id" value="{{ todo.id }}" />
+                <button type="submit">🗑️</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
