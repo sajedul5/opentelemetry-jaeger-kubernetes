@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-todo
+  namespace: otel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi-todo
+  template:
+    metadata:
+      labels:
+        app: fastapi-todo
+    spec:
+      containers:
+        - name: fastapi-todo
+          image: sajedul5/devops:todo-1
+          ports:
+            - containerPort: 8000
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector:4318"
+            - name: OTEL_TRACES_EXPORTER
+              value: otlp
+            - name: OTEL_SERVICE_NAME
+              value: fastapi-todo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-todo
+  namespace: otel
+spec:
+  selector:
+    app: fastapi-todo
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fastapi-todo-ingress
+  namespace: otel
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - host: todo.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: fastapi-todo
+                port:
+                  number: 80
