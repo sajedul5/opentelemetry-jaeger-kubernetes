@@ -1,5 +1,5 @@
 
-# OpenTelemetry Integration with Kubernetes and Jaeger
+# Implementing OpenTelemetry with Jaeger on Kubernetes for Scalable Application Monitoring
 
 This repository provides a complete setup for integrating OpenTelemetry (OTEL) into your application and visualizing traces in Jaeger. It is designed for easy deployment on Kubernetes, allowing developers to clone, deploy, and integrate observability into real-world applications.
 
