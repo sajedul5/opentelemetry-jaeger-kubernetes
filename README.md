@@ -54,11 +54,10 @@ cd OpenTelemetry
 ```bash
 
 ```bash
-    kubectl apply -f deploy/namespace.yaml
-    kubectl apply -f deploy/jaeger.yaml
-    kubectl apply -f deploy/otel-collector.yaml
-    kubectl apply -f deploy/app-deployment.yaml
-    kubectl apply -f deploy/ingress.yaml
+    kubectl apply -f k8s/namespace.yaml
+    kubectl apply -f k8s/jaeger.yaml
+    kubectl apply -f k8s/otel-collector.yaml
+    kubectl apply -f k8s/app-deployment.yaml
 ```
 ```
 
