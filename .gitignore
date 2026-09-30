@@ -12,3 +12,6 @@ bin/
 # IDEs
 .vscode/
 .idea/
+
+__pycache__/
+*.pyc
