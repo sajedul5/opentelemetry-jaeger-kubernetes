@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   app:
     build: .
@@ -8,8 +6,6 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-    environment:
-      - OTEL_ENABLED=true
     depends_on:
       - otel-collector
 
@@ -21,3 +17,11 @@ services:
     command: ["--config", "/etc/otelcol/config.yaml"]
     ports:
       - "4318:4318"  # HTTP OTLP
+    depends_on:
+      - jaeger
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.56
+    container_name: jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
