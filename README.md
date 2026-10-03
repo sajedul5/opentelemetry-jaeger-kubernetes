@@ -1,145 +1,95 @@
+# OpenTelemetry + Jaeger Playground
 
-# Implementing OpenTelemetry with Jaeger on Kubernetes for Scalable Application Monitoring
+Learn tracing by running it on your own machine.
 
-This repository provides a complete setup for integrating OpenTelemetry (OTEL) into your application and visualizing traces in Jaeger. It is designed for easy deployment on Kubernetes, allowing developers to clone, deploy, and integrate observability into real-world applications.
-
----
-
-## ✨ Why Use OpenTelemetry?
-
-- **Unified Telemetry**: Collect traces, metrics, and logs using a single standard.
-- **Vendor-Agnostic**: Compatible with various backends like Jaeger, Prometheus, Tempo, etc.
-- **Improved Observability**: Gain deep insights into application performance and user behavior.
-- **Open Source and CNCF Maintained**.
-
----
-
-## 🧱 Architecture
+This repo has a small **Todo app**. Every time you use the app, it records a **trace** (what happened and how long each step took). You can see those traces in **Jaeger**.
 
 ```
-[Your App] ──> [OpenTelemetry Collector] ──> [Jaeger] ──> Jaeger UI
+Todo app  ──>  OpenTelemetry Collector  ──>  Jaeger (see traces here)
 ```
 
 ---
 
-## 📁 Project Structure
+## Run it locally
 
-```
-.
-├── app/                            # Sample instrumented application
-│   ├── main.py                     # Python app with OTEL tracing
-│   └── Dockerfile                  # Dockerfile for building the app image
-├── k8s/                            # Kubernetes manifests
-│   ├── namespace.yaml              # Creates the 'otel' namespace
-│   ├── jaeger.yaml                 # Jaeger all-in-one deployment
-│   ├── otel-collector.yaml         # OTEL Collector config and deployment
-│   └── app-deployment.yaml         # App deployment + service + ingress
-├── README.md                       # Project documentation
-
-```
-
----
-
-## 🚀 Quick Start Guide
-
-### 1. Clone the Repo
+**You need:** [Docker](https://docs.docker.com/get-docker/)
 
 ```bash
-git clone https://github.com/sajedul5/OpenTelemetry.git
-cd OpenTelemetry
+git clone https://github.com/sajedul5/opentelemetry-jaeger-kubernetes.git
+cd opentelemetry-jaeger-kubernetes/app
+docker compose up -d --build
 ```
 
-### 2. Apply Kubernetes Manifests
+Open in your browser:
+
+- Todo app: http://localhost:8000
+- Jaeger: http://localhost:16686
+
+## See your first trace
+
+1. In the **Todo app**, add a few todos, then tick or delete them.
+2. In **Jaeger**, choose service **`todo-html-app`** and click **Find Traces**.
+3. Click any trace to see each step of that request.
+
+## Stop it
 
 ```bash
-
-```bash
-    kubectl apply -f k8s/namespace.yaml
-    kubectl apply -f k8s/jaeger.yaml
-    kubectl apply -f k8s/otel-collector.yaml
-    kubectl apply -f k8s/app-deployment.yaml
+docker compose down
 ```
-```
-
-> Make sure your cluster has an ingress controller installed (like NGINX).
 
 ---
 
-## 🔧 Sample Application
+## How it works
 
-The app is a basic Python service instrumented using `opentelemetry-sdk` and `opentelemetry-exporter-otlp`.
+| Part | File | What it does |
+| ---- | ---- | ------------ |
+| Todo app | `app/main.py` | FastAPI app. It creates a trace for every request. |
+| Collector | `app/otel-collector-config.yaml` | Receives traces from the app and sends them to Jaeger. |
+| Jaeger | `app/docker-compose.yml` | Stores traces and shows them in a web UI. |
+
+The tracing code in `app/main.py`:
 
 ```python
-# main.py
-from flask import Flask
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.resources import SERVICE_NAME, Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-
-trace.set_tracer_provider(
-    TracerProvider(resource=Resource.create({SERVICE_NAME: "sample-app"}))
+trace.set_tracer_provider(TracerProvider(resource=Resource.create({SERVICE_NAME: "todo-html-app"})))
+trace.get_tracer_provider().add_span_processor(
+    BatchSpanProcessor(OTLPSpanExporter(endpoint="http://otel-collector:4318/v1/traces"))
 )
-span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://otel-collector.otel.svc.cluster.local:4318"))
-trace.get_tracer_provider().add_span_processor(span_processor)
-
-app = Flask(__name__)
-
-@app.route("/")
-def index():
-    with trace.get_tracer(__name__).start_as_current_span("index-span"):
-        return "Hello from OTEL Instrumented App!"
-
-app.run(host="0.0.0.0", port=5000)
+FastAPIInstrumentor.instrument_app(app)  # traces every request automatically
 ```
 
+## Try next
+
+- Change the service name `todo-html-app` in `main.py`, restart, and find it in Jaeger.
+- Add your own span:
+  ```python
+  with trace.get_tracer(__name__).start_as_current_span("my-step"):
+      ...
+  ```
+- Watch the raw trace data: `docker compose logs -f otel-collector`
+
 ---
 
-## 🖥️ Access Jaeger UI
+## Bonus: run it on Kubernetes
 
-Edit your `/etc/hosts`:
+Use a local cluster such as kind, minikube, or Docker Desktop. Run these from the repo root:
 
+```bash
+kubectl apply -f k8s/
+kubectl get pods -n otel        # wait until all pods are Running
+
+kubectl port-forward -n otel svc/fastapi-todo 8000:80 &
+kubectl port-forward -n otel svc/jaeger-collector 16686:16686 &
 ```
-127.0.0.1 jaeger.todo.com todo.com
 
-```
+Open the same URLs as above. To clean up, run `kubectl delete namespace otel`.
 
-Jaeger UI: http://jaeger.todo.com
-
-App: http://todo.com
+> If `kubectl apply -f k8s/` complains that the `otel` namespace doesn't exist, run `kubectl apply -f k8s/namespace.yaml` first, then run it again.
 
 ---
 
-## 🛠 Best Practices
-
-- Use different pipelines for logs, metrics, and traces.
-- Add OTEL sidecar or auto-instrumentation for larger services.
-- Secure OTLP endpoints in production.
-- Visualize metrics using Prometheus + Grafana if needed.
-- Prefer OTEL Collector as a central routing point.
-
----
-
-## ✅ Recommended for Production
-
-- Enable persistent storage for Jaeger.
-- Use `StatefulSet` or Helm for production-grade deployments.
-- Configure TLS and authentication.
-- Use OpenTelemetry Operator for auto-instrumentation.
-
----
-
-## 📚 Resources
+## Learn more
 
 - [OpenTelemetry](https://opentelemetry.io/)
 - [Jaeger](https://www.jaegertracing.io/)
-- [OpenTelemetry Python](https://opentelemetry-python.readthedocs.io/)
 
----
-
----
-
-## 📄 License
-
-MIT
+MIT License
