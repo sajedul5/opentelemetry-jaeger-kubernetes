@@ -36,7 +36,7 @@ def write_db(data): json.dump(data, open(DB_PATH, "w"), indent=2)
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     todos = read_db()
-    return templates.TemplateResponse("index.html", {"request": request, "todos": todos})
+    return templates.TemplateResponse(request, "index.html", {"todos": todos})
 
 @app.post("/add")
 def add(title: str = Form(...)):
