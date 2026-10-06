@@ -92,4 +92,4 @@ Open the same URLs as above. To clean up, run `kubectl delete namespace otel`.
 - [OpenTelemetry](https://opentelemetry.io/)
 - [Jaeger](https://www.jaegertracing.io/)
 
-MIT License
+[MIT License](LICENSE)
